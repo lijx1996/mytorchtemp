@@ -1,5 +1,6 @@
 import torch
-
+from sklearn.metrics import confusion_matrix as skl_cm
+from sklearn.metrics import precision_recall_fscore_support as skl_score
 
 def accuracy(output, target):
     with torch.no_grad():
@@ -18,3 +19,17 @@ def top_k_acc(output, target, k=3):
         for i in range(k):
             correct += torch.sum(pred[:, i] == target).item()
     return correct / len(target)
+
+def confusion_matrix(output, target):
+    with torch.no_grad():
+        pred = torch.argmax(output, dim=1)
+        result = skl_cm(target.detach().cpu().numpy(), pred.detach().cpu().numpy())
+    return result
+
+# def scores(output, target):
+#     with torch.no_grad():
+#         pred = torch.argmax(output, dim=1)
+#         result = skl_score(target.detach().cpu().numpy(), pred.detach().cpu().numpy())
+#     return result
+
+
