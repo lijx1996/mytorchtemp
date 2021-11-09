@@ -8,15 +8,14 @@ class BaseTrainer:
     """
     Base class for all trainers
     """
-    def __init__(self, model, criterion, metric_ftns, optimizer, config):
+    def __init__(self, model, criterion, metric_fns, optimizer, config):
         self.config = config
         self.logger = config.get_logger('trainer', config['trainer']['verbosity'])
 
         self.model = model
         self.criterion = criterion
-        self.metric_ftns = metric_ftns
+        self.metric_fns = metric_fns
         self.optimizer = optimizer
-
         cfg_trainer = config['trainer']
         self.epochs = cfg_trainer['epochs']
         self.save_period = cfg_trainer['save_period']
@@ -39,6 +38,9 @@ class BaseTrainer:
 
         # setup visualization writer instance                
         self.writer = TensorboardWriter(config.log_dir, self.logger, cfg_trainer['tensorboard'])
+
+        if config.pretrain is not None:
+            self._load_pretrain(config.pretrain)
 
         if config.resume is not None:
             self._resume_checkpoint(config.resume)
@@ -120,6 +122,21 @@ class BaseTrainer:
             best_path = str(self.checkpoint_dir / 'model_best.pth')
             torch.save(state, best_path)
             self.logger.info("Saving current best: model_best.pth ...")
+
+    def _load_pretrain(self, path):
+        pretrain_path = str(path)
+        self.logger.info("Loading checkpoint: {} ...".format(pretrain_path))
+        checkpoint = torch.load(pretrain_path)
+        state_dict = checkpoint['state_dict']
+        if self.config['n_gpu'] <= 1:
+            self.model.load_state_dict(state_dict)
+        elif self.config['n_gpu'] > 1:
+            new_state_dict = {}
+            for k, v in state_dict.items():
+                k = 'module.' + k
+                new_state_dict[k] = v
+            self.model.load_state_dict(new_state_dict)
+
 
     def _resume_checkpoint(self, resume_path):
         """

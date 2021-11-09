@@ -69,11 +69,15 @@ class MetricTracker:
     def __init__(self, *keys, writer=None):
         self.writer = writer
         self._data = pd.DataFrame(index=keys, columns=['total', 'counts', 'average'])
+        self._matrix = []
         self.reset()
 
     def reset(self):
         for col in self._data.columns:
             self._data[col].values[:] = 0
+
+    def update_matrix(self, value):
+        self._matrix = value
 
     def update(self, key, value, n=1):
         if self.writer is not None:
@@ -86,4 +90,6 @@ class MetricTracker:
         return self._data.average[key]
 
     def result(self):
-        return dict(self._data.average)
+        out_dict = dict(self._data.average)
+        out_dict['confusion_matrix'] = self._matrix
+        return out_dict
